@@ -69,13 +69,6 @@ public:
     }
 
 #if COM_ANDROID_GRAPHICS_LIBGUI_FLAGS(BQ_CONSUMER_ATTACH_CALLBACK)
-    virtual void onBufferDetached(int slot) {
-        Parcel data, reply;
-        data.writeInterfaceToken(IProducerListener::getInterfaceDescriptor());
-        data.writeInt32(slot);
-        remote()->transact(ON_BUFFER_DETACHED, data, &reply, IBinder::FLAG_ONEWAY);
-    }
-
     virtual void onBufferAttached() {
         Parcel data, reply;
         data.writeInterfaceToken(IProducerListener::getInterfaceDescriptor());
@@ -99,6 +92,13 @@ public:
         return result;
     }
 #endif
+
+    virtual void onBufferDetached(int slot) {
+        Parcel data, reply;
+        data.writeInterfaceToken(IProducerListener::getInterfaceDescriptor());
+        data.writeInt32(slot);
+        remote()->transact(ON_BUFFER_DETACHED, data, &reply, IBinder::FLAG_ONEWAY);
+    }
 };
 
 // Out-of-line virtual method definition to trigger vtable emission in this
@@ -151,17 +151,6 @@ status_t BnProducerListener::onTransact(uint32_t code, const Parcel& data,
             return NO_ERROR;
         }
 #if COM_ANDROID_GRAPHICS_LIBGUI_FLAGS(BQ_CONSUMER_ATTACH_CALLBACK)
-        case ON_BUFFER_DETACHED: {
-            CHECK_INTERFACE(IProducerListener, data, reply);
-            int slot;
-            status_t result = data.readInt32(&slot);
-            if (result != NO_ERROR) {
-                ALOGE("ON_BUFFER_DETACHED failed to read slot: %d", result);
-                return result;
-            }
-            onBufferDetached(slot);
-            return NO_ERROR;
-        }
         case ON_BUFFER_ATTACHED:
             CHECK_INTERFACE(IProducerListener, data, reply);
             onBufferAttached();
@@ -171,6 +160,17 @@ status_t BnProducerListener::onTransact(uint32_t code, const Parcel& data,
             reply->writeBool(needsAttachNotify());
             return NO_ERROR;
 #endif
+        case ON_BUFFER_DETACHED: {
+            CHECK_INTERFACE(IProducerListener, data, reply);
+            int slot = 0;
+            status_t result = data.readInt32(&slot);
+            if (result != NO_ERROR) {
+                ALOGE("ON_BUFFER_DETACHED failed to read slot: %d", result);
+                return result;
+            }
+            onBufferDetached(slot);
+            return NO_ERROR;
+        }
     }
     return BBinder::onTransact(code, data, reply, flags);
 }
